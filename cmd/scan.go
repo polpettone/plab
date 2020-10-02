@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"github.com/spf13/cobra"
+	"strconv"
 )
 
 func (app *Application) NewScanCmd() *cobra.Command {
@@ -18,7 +19,11 @@ func (app *Application) NewScanCmd() *cobra.Command {
 
 func (app *Application) handleScanCommand(args []string) {
 	scanner := Scanner{PClient: app.PClient, Logging: app.Logging}
-	scanResult, _ := scanner.scan(args[0], 10, 2)
+
+	requestCount, _  := strconv.Atoi(args[1])
+	concurrencyLimit, _  := strconv.Atoi(args[2])
+
+	scanResult, _ := scanner.scan(args[0], requestCount, concurrencyLimit)
 
 	scanResultJson, err := json.Marshal(scanResult)
 
