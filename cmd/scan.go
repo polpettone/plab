@@ -11,14 +11,14 @@ func (app *Application) NewScanCmd() *cobra.Command {
 		Short: "",
 		Long:  ``,
 		Run: func(command *cobra.Command, args []string) {
-			app.handleScanCommand()
+			app.handleScanCommand(args)
 		},
 	}
 }
 
-func (app *Application) handleScanCommand() {
+func (app *Application) handleScanCommand(args []string) {
 	scanner := Scanner{PClient: app.PClient, Logging: app.Logging}
-	scanResult, _ := scanner.scan("https://example.com", 10, 2)
+	scanResult, _ := scanner.scan(args[0], 10, 2)
 
 	scanResultJson, err := json.Marshal(scanResult)
 
