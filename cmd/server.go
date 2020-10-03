@@ -16,5 +16,6 @@ type Server struct {
 
 func (server Server) start() {
 	http.HandleFunc("/", server.ok)
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	server.Logging.errorLog.Printf("%v", err)
 }
