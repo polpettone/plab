@@ -1,10 +1,27 @@
 package cmd
 
+import "time"
+
 type ScanResult struct {
 	ConcurrencyLimit int
 	Url              string
 	PClientResponses []PClientResponse
 	RequestCount     int
+	Duration         time.Duration
+}
+
+func NewScanResult(url string, requestCount int, concurrencyLimit int, pclientResponses []PClientResponse) ScanResult {
+	var totalDuration time.Duration
+	for _, response := range pclientResponses {
+		totalDuration += response.Duration
+	}
+	return ScanResult{
+		PClientResponses: pclientResponses,
+		ConcurrencyLimit: concurrencyLimit,
+		RequestCount:     requestCount,
+		Url:              url,
+		Duration:		  totalDuration,
+	}
 }
 
 type Scanner struct {
@@ -32,7 +49,6 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 	}
 
 	var responses []PClientResponse
-
 	for {
 		response := <-responseChan
 		responses = append(responses, *response)
@@ -40,10 +56,7 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 			break
 		}
 	}
-	return &ScanResult{
-		PClientResponses: responses,
-		ConcurrencyLimit: concurrencyLimit,
-		RequestCount:     requestCount,
-		Url:              url,
-	}, nil
+
+	scanResult := NewScanResult(url,  requestCount, concurrencyLimit, responses)
+	return &scanResult , nil
 }
