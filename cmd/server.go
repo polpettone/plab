@@ -14,8 +14,11 @@ type Server struct {
 	Logging *Logging
 }
 
-func (server Server) start() {
+func (server Server) start(port string) {
 	http.HandleFunc("/", server.ok)
-	err := http.ListenAndServe(":8080", nil)
-	server.Logging.errorLog.Printf("%v", err)
+	server.Logging.stdout.Printf("Start server, listing on port: %s", port)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		server.Logging.errorLog.Printf("%v", err)
+	}
 }

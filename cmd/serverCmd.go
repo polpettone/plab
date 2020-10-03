@@ -6,18 +6,18 @@ import (
 
 func NewServerScanCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "server",
+		Use:   "server <port>",
 		Short: "",
 		Long:  ``,
 		Run: func(command *cobra.Command, args []string) {
-			handleServerCommand()
+			handleServerCommand(args)
 		},
 	}
 }
 
-func handleServerCommand() {
+func handleServerCommand(args []string) {
 	server := Server{Logging: NewLogging()}
-	server.start()
+	server.start(args[0])
 }
 
 func init() {
