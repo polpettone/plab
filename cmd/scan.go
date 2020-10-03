@@ -8,7 +8,7 @@ import (
 
 func (app *Application) NewScanCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "scan",
+		Use:   "scan <url> <request count> <concurrency limit>",
 		Short: "",
 		Long:  ``,
 		Run: func(command *cobra.Command, args []string) {

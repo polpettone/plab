@@ -15,13 +15,22 @@ func NewPClient(logging Logging) *PClient {
 	}
 }
 
-
 type PClientResponse struct {
-	StartTime time.Time
-	EndTime	  time.Time
+	StartTime  time.Time
+	EndTime    time.Time
 	StatusCode int
+	Duration   time.Duration
 }
 
+func NewPClientResponse(startTime time.Time, endTime time.Time, statusCode int) PClientResponse {
+	duration := endTime.Sub(startTime)
+	return PClientResponse{
+		StatusCode: statusCode,
+		StartTime:  startTime,
+		EndTime:    endTime,
+		Duration: 	duration,
+	}
+}
 
 func (pclient PClient) call(url string) (*PClientResponse, error) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -39,11 +48,7 @@ func (pclient PClient) call(url string) (*PClientResponse, error) {
 		return nil, err
 	}
 
-	pclientResponse := &PClientResponse{
-		StatusCode: resp.StatusCode,
-		StartTime: startTime,
-		EndTime: endTime,
-	}
+	pclientResponse := NewPClientResponse(startTime, endTime, resp.StatusCode)
 
-	return pclientResponse, nil
+	return &pclientResponse, nil
 }
