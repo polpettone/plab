@@ -3,25 +3,12 @@ package cmd
 import "time"
 
 type ScanResult struct {
-	ConcurrencyLimit int
-	Url              string
-	PClientResponses []PClientResponse
-	RequestCount     int
-	Duration         time.Duration
-}
-
-func NewScanResult(url string, requestCount int, concurrencyLimit int, pclientResponses []PClientResponse) ScanResult {
-	var totalDuration time.Duration
-	for _, response := range pclientResponses {
-		totalDuration += response.Duration
-	}
-	return ScanResult{
-		PClientResponses: pclientResponses,
-		ConcurrencyLimit: concurrencyLimit,
-		RequestCount:     requestCount,
-		Url:              url,
-		Duration:		  totalDuration,
-	}
+	ConcurrencyLimit    int
+	Url                 string
+	PClientResponses    []PClientResponse
+	RequestCount        int
+	DurationNanoSeconds time.Duration
+	DurationMilliSeconds int64
 }
 
 type Scanner struct {
@@ -39,6 +26,8 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		close(responseChan)
 	}()
 
+
+	startTime := time.Now()
 	for i := 0; i < requestCount; i++ {
 		go func(i int) {
 			semaphoreChan <- struct{}{}
@@ -47,6 +36,9 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 			<-semaphoreChan
 		}(i)
 	}
+	endTime := time.Now()
+
+	duration := endTime.Sub(startTime)
 
 	var responses []PClientResponse
 	for {
@@ -57,6 +49,13 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		}
 	}
 
-	scanResult := NewScanResult(url,  requestCount, concurrencyLimit, responses)
+	scanResult := ScanResult{
+		ConcurrencyLimit: concurrencyLimit,
+		Url: url,
+		PClientResponses: responses,
+		RequestCount: requestCount,
+		DurationNanoSeconds: duration,
+		DurationMilliSeconds: duration.Milliseconds(),
+	}
 	return &scanResult , nil
 }
