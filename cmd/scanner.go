@@ -26,6 +26,7 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		close(responseChan)
 	}()
 
+	scanner.Logging.debugLog.Printf("start scanning")
 	startTime := time.Now()
 	for i := 0; i < requestCount; i++ {
 		go func(i int) {
@@ -46,7 +47,7 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		}
 	}
 
-	scanner.Logging.debugLog.Printf("Consumed %d responses from channel", len(responses))
+	scanner.Logging.debugLog.Printf("finished scanning")
 
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
