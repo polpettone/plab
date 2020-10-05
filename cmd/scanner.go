@@ -9,6 +9,7 @@ type ScanResult struct {
 	RequestCount         int
 	DurationNanoSeconds  time.Duration
 	DurationMilliSeconds int64
+	SuccessCount		 int
 }
 
 type Scanner struct {
@@ -58,6 +59,17 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		RequestCount:         requestCount,
 		DurationNanoSeconds:  duration,
 		DurationMilliSeconds: duration.Milliseconds(),
+		SuccessCount: evaluateResponses(responses),
 	}
 	return &scanResult, nil
+}
+
+func evaluateResponses(responses []PClientResponse) int {
+	successCount := 0
+	for _, response := range responses {
+		if response.Error == nil {
+			successCount++
+		}
+	}
+	return successCount
 }
