@@ -35,6 +35,9 @@ func NewPClientResponse(startTime time.Time, endTime time.Time, statusCode int) 
 func (pclient PClient) call(url string) (*PClientResponse, error) {
 	req, err := http.NewRequest("GET", url, nil)
 
+
+	pclient.Logging.debugLog.Printf("call %s", url)
+
 	if err != nil {
 		return nil, err
 	}

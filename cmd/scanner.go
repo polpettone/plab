@@ -26,25 +26,20 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		close(responseChan)
 	}()
 
-
 	startTime := time.Now()
 	for i := 0; i < requestCount; i++ {
 		go func(i int) {
 			semaphoreChan <- struct{}{}
+			scanner.Logging.debugLog.Printf("Call PClient")
 			pclientResponse, err := scanner.PClient.call(url)
-
 			if err == nil {
 				responseChan <- pclientResponse
 			} else {
 				scanner.Logging.errorLog.Printf("%v", err)
 			}
-
 			<-semaphoreChan
 		}(i)
 	}
-	endTime := time.Now()
-
-	duration := endTime.Sub(startTime)
 
 	var responses []PClientResponse
 	for {
@@ -55,6 +50,10 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		}
 	}
 
+	scanner.Logging.debugLog.Printf("Consumed %d responses from channel", len(responses))
+
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
 	scanResult := ScanResult{
 		ConcurrencyLimit: concurrencyLimit,
 		Url: url,
