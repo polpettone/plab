@@ -16,23 +16,22 @@ func NewPClient(logging Logging) *PClient {
 }
 
 type PClientResponse struct {
-	StartTime  *time.Time
-	EndTime    *time.Time
-	StatusCode *int
-	Duration   *time.Duration
+	StartTime  time.Time
+	EndTime    time.Time
+	StatusCode int
+	Duration   time.Duration
 	Error	   error
 }
 
-func NewPClientResponse(startTime *time.Time, endTime *time.Time, statusCode *int, err error) PClientResponse {
-	var duration time.Duration
-	if endTime != nil && startTime != nil {
-		duration = endTime.Sub(*startTime)
-	}
+func NewPClientResponse(startTime time.Time, endTime time.Time, statusCode int, err error) PClientResponse {
+
+	duration :=  endTime.Sub(startTime)
+
 	return PClientResponse{
 		StatusCode: statusCode,
 		StartTime:  startTime,
 		EndTime:    endTime,
-		Duration: 	&duration,
+		Duration: 	duration,
 		Error:		err,
 	}
 }
@@ -43,7 +42,7 @@ func (pclient PClient) call(url string) PClientResponse {
 	pclient.Logging.debugLog.Printf("call %s", url)
 
 	if err != nil {
-		return NewPClientResponse(nil, nil, nil, err)
+		return PClientResponse{Error: err}
 	}
 
 	client := &http.Client{Timeout: time.Second * 1}
@@ -54,9 +53,9 @@ func (pclient PClient) call(url string) PClientResponse {
 	var pclientResponse PClientResponse
 
 	if resp != nil {
-		pclientResponse = NewPClientResponse(&startTime, &endTime, &resp.StatusCode, err)
+		pclientResponse = NewPClientResponse(startTime, endTime, resp.StatusCode, err)
 	}  else {
-		pclientResponse = NewPClientResponse(&startTime, &endTime, nil, err)
+		pclientResponse = NewPClientResponse(startTime, endTime, 0, err)
 	}
 
 	return pclientResponse
