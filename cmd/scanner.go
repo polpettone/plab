@@ -31,8 +31,14 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 	for i := 0; i < requestCount; i++ {
 		go func(i int) {
 			semaphoreChan <- struct{}{}
-			pclientResponse, _ := scanner.PClient.call(url)
-			responseChan <- pclientResponse
+			pclientResponse, err := scanner.PClient.call(url)
+
+			if err == nil {
+				responseChan <- pclientResponse
+			} else {
+				scanner.Logging.errorLog.Printf("%v", err)
+			}
+
 			<-semaphoreChan
 		}(i)
 	}
