@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/spf13/cobra"
+	"os"
+	"os/signal"
 	"strconv"
 )
 
@@ -19,30 +22,43 @@ func (app *Application) NewScanCmd() *cobra.Command {
 
 func (app *Application) handleScanCommand(cobraCommand *cobra.Command, args []string) {
 	verbose, _ := cobraCommand.Flags().GetBool("verbose")
+	infinite, _ := cobraCommand.Flags().GetBool("infinite")
 
 	scanner := Scanner{PClient: app.PClient, Logging: app.Logging}
 
-	requestCount, _  := strconv.Atoi(args[1])
-	concurrencyLimit, _  := strconv.Atoi(args[2])
-
-	scanResult, _ := scanner.scan(args[0], requestCount, concurrencyLimit)
-
-
-	if verbose {
-		scanResultJsonVerbose, err := json.Marshal(scanResult)
-		if err != nil {
-			app.Logging.errorLog.Printf("%v", err)
-		}
-		app.Logging.stdout.Printf(string(scanResultJsonVerbose))
+	if infinite {
+		infiniteMode()
 	} else {
-		scanResult.PClientResponses = nil
-		scanResultJson, err := json.Marshal(scanResult)
-		if err != nil {
-			app.Logging.errorLog.Printf("%v", err)
+		requestCount, _ := strconv.Atoi(args[1])
+		concurrencyLimit, _ := strconv.Atoi(args[2])
+		scanResult, _ := scanner.scan(args[0], requestCount, concurrencyLimit)
+		if verbose {
+			scanResultJsonVerbose, err := json.Marshal(scanResult)
+			if err != nil {
+				app.Logging.errorLog.Printf("%v", err)
+			}
+			app.Logging.stdout.Printf(string(scanResultJsonVerbose))
+		} else {
+			scanResult.PClientResponses = nil
+			scanResultJson, err := json.Marshal(scanResult)
+			if err != nil {
+				app.Logging.errorLog.Printf("%v", err)
+			}
+			app.Logging.stdout.Printf(string(scanResultJson))
 		}
-		app.Logging.stdout.Printf(string(scanResultJson))
 	}
+}
 
+func infiniteMode() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		os.Exit(0)
+	}()
+	for {
+		fmt.Println("do")
+	}
 }
 
 func init() {
@@ -56,7 +72,14 @@ func init() {
 		"verbose",
 		"v",
 		false,
-		"Output includes all Responses" ,
+		"Output includes all Responses",
+	)
+
+	scanCmd.Flags().BoolP(
+		"infinite",
+		"i",
+		false,
+		"run infinite mode, cancel with ctrl+c",
 	)
 
 	rootCmd.AddCommand(scanCmd)
