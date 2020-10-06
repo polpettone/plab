@@ -12,12 +12,14 @@ func (app *Application) NewScanCmd() *cobra.Command {
 		Short: "",
 		Long:  ``,
 		Run: func(command *cobra.Command, args []string) {
-			app.handleScanCommand(args)
+			app.handleScanCommand(command, args)
 		},
 	}
 }
 
-func (app *Application) handleScanCommand(args []string) {
+func (app *Application) handleScanCommand(cobraCommand *cobra.Command, args []string) {
+	verbose, _ := cobraCommand.Flags().GetBool("verbose")
+
 	scanner := Scanner{PClient: app.PClient, Logging: app.Logging}
 
 	requestCount, _  := strconv.Atoi(args[1])
@@ -25,13 +27,22 @@ func (app *Application) handleScanCommand(args []string) {
 
 	scanResult, _ := scanner.scan(args[0], requestCount, concurrencyLimit)
 
-	scanResultJson, err := json.Marshal(scanResult)
 
-	if err != nil {
-		app.Logging.errorLog.Printf("%v", err)
+	if verbose {
+		scanResultJsonVerbose, err := json.Marshal(scanResult)
+		if err != nil {
+			app.Logging.errorLog.Printf("%v", err)
+		}
+		app.Logging.stdout.Printf(string(scanResultJsonVerbose))
+	} else {
+		scanResult.PClientResponses = nil
+		scanResultJson, err := json.Marshal(scanResult)
+		if err != nil {
+			app.Logging.errorLog.Printf("%v", err)
+		}
+		app.Logging.stdout.Printf(string(scanResultJson))
 	}
 
-	app.Logging.stdout.Printf(string(scanResultJson))
 }
 
 func init() {
@@ -40,5 +51,13 @@ func init() {
 
 	app := NewApplication(logging, pclient)
 	scanCmd := app.NewScanCmd()
+
+	scanCmd.Flags().BoolP(
+		"verbose",
+		"v",
+		false,
+		"Output includes all Responses" ,
+	)
+
 	rootCmd.AddCommand(scanCmd)
 }

@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"net/http"
 )
 
 func (server Server) ok(w http.ResponseWriter, req *http.Request) {
 	server.Logging.stdout.Printf(req.RemoteAddr)
-	_, _ = fmt.Fprintf(w, "ok")
+	//_, _ = fmt.Fprintf(w, "ok")
+	http.Error(w, "Unknown Error", http.StatusInternalServerError)
 }
 
 type Server struct {

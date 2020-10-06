@@ -3,13 +3,20 @@ package cmd
 import "time"
 
 type ScanResult struct {
-	ConcurrencyLimit     int
-	Url                  string
-	PClientResponses     []PClientResponse
-	RequestCount         int
-	DurationNanoSeconds  time.Duration
-	DurationMilliSeconds int64
-	SuccessCount		 int
+	ConcurrencyLimit          int
+	Url                       string
+	PClientResponses          []PClientResponse
+	RequestCount              int
+	DurationNanoSeconds       time.Duration
+	DurationMilliSeconds      int64
+	SuccessCount              int
+	RequestResponseEvaluation RequestResponseEvaluation
+}
+
+type RequestResponseEvaluation struct {
+	SuccessCount       int
+	ClientFailureCount int
+	ServerFailureCount int
 }
 
 type Scanner struct {
@@ -53,23 +60,34 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
 	scanResult := ScanResult{
-		ConcurrencyLimit:     concurrencyLimit,
-		Url:                  url,
-		PClientResponses:     responses,
-		RequestCount:         requestCount,
-		DurationNanoSeconds:  duration,
-		DurationMilliSeconds: duration.Milliseconds(),
-		SuccessCount: evaluateResponses(responses),
+		ConcurrencyLimit:          concurrencyLimit,
+		Url:                       url,
+		PClientResponses:          responses,
+		RequestCount:              requestCount,
+		DurationNanoSeconds:       duration,
+		DurationMilliSeconds:      duration.Milliseconds(),
+		RequestResponseEvaluation: evaluateResponses(responses),
 	}
 	return &scanResult, nil
 }
 
-func evaluateResponses(responses []PClientResponse) int {
+func evaluateResponses(responses []PClientResponse) RequestResponseEvaluation {
 	successCount := 0
+	clientFailureCount := 0
+	serverFailureCount := 0
 	for _, response := range responses {
-		if response.Error == nil {
+		is2xx := checkStatusCodeIs2xx(response.StatusCode)
+		if response.Error == nil && is2xx {
 			successCount++
+		} else if response.Error != nil {
+			clientFailureCount++
+		} else if !is2xx {
+			serverFailureCount++
 		}
 	}
-	return successCount
+	return RequestResponseEvaluation{successCount, clientFailureCount, serverFailureCount}
+}
+
+func checkStatusCodeIs2xx(statusCode int) bool {
+	return statusCode >= 200 && statusCode <= 299
 }
