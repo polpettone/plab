@@ -6,11 +6,11 @@ import (
 )
 
 type Logging struct {
-	stdout		  *log.Logger
-	errorLog      *log.Logger
-	infoLog       *log.Logger
-	debugLog	  *log.Logger
-	result		  *log.Logger
+	Stdout   *log.Logger
+	ErrorLog *log.Logger
+	InfoLog  *log.Logger
+	DebugLog *log.Logger
+	Result   *log.Logger
 }
 
 func openLogFile(path string) *os.File {
@@ -29,11 +29,11 @@ func NewLogging() *Logging {
 	debugLog := log.New(openLogFile("debug.log"), "DEBUG\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	app := &Logging {
-		stdout: stdout,
-		errorLog: errorLog,
-		infoLog: infoLog,
-		debugLog: debugLog,
-		result:	result,
+		Stdout:   stdout,
+		ErrorLog: errorLog,
+		InfoLog:  infoLog,
+		DebugLog: debugLog,
+		Result:   result,
 	}
 
 	return app

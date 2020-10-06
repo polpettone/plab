@@ -42,12 +42,12 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		close(responseChan)
 	}()
 
-	scanner.Logging.debugLog.Printf("start scanning")
+	scanner.Logging.DebugLog.Printf("start scanning")
 	startTime := time.Now()
 	for i := 0; i < requestCount; i++ {
 		go func(i int) {
 			semaphoreChan <- struct{}{}
-			scanner.Logging.debugLog.Printf("Call PClient")
+			scanner.Logging.DebugLog.Printf("Call PClient")
 			pclientResponse := scanner.PClient.call(url)
 			responseChan <- pclientResponse
 			<-semaphoreChan
@@ -67,7 +67,7 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		}
 	}
 
-	scanner.Logging.debugLog.Printf("finished scanning")
+	scanner.Logging.DebugLog.Printf("finished scanning")
 
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
@@ -93,18 +93,18 @@ func logIntermediateScanResult(startTime time.Time, responses []PClientResponse,
 	}
 	intermediateScanResultJson, err := json.Marshal(intermediateScanResult)
 	if err != nil {
-		scanner.Logging.errorLog.Printf("%v", err)
+		scanner.Logging.ErrorLog.Printf("%v", err)
 	} else {
-		scanner.Logging.result.Printf(string(intermediateScanResultJson))
+		scanner.Logging.Result.Printf(string(intermediateScanResultJson))
 	}
 }
 
 func logResponse(response PClientResponse, scanner Scanner) {
 	responseJson, err := json.Marshal(response)
 	if err != nil {
-		scanner.Logging.errorLog.Printf("%v", err)
+		scanner.Logging.ErrorLog.Printf("%v", err)
 	} else {
-		scanner.Logging.result.Printf(string(responseJson))
+		scanner.Logging.Result.Printf(string(responseJson))
 	}
 }
 

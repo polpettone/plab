@@ -17,8 +17,8 @@ func (app *Application) NewRunCmd() *cobra.Command {
 }
 
 func (app *Application) handleRunCommand() {
-	app.Logging.infoLog.Printf("run command")
-	app.Logging.stdout.Printf("run command")
+	app.Logging.InfoLog.Printf("run command")
+	app.Logging.Stdout.Printf("run command")
 }
 
 

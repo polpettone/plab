@@ -35,16 +35,16 @@ func (app *Application) handleScanCommand(cobraCommand *cobra.Command, args []st
 		if verbose {
 			scanResultJsonVerbose, err := json.Marshal(scanResult)
 			if err != nil {
-				app.Logging.errorLog.Printf("%v", err)
+				app.Logging.ErrorLog.Printf("%v", err)
 			}
-			app.Logging.stdout.Printf(string(scanResultJsonVerbose))
+			app.Logging.Stdout.Printf(string(scanResultJsonVerbose))
 		} else {
 			scanResult.PClientResponses = nil
 			scanResultJson, err := json.Marshal(scanResult)
 			if err != nil {
-				app.Logging.errorLog.Printf("%v", err)
+				app.Logging.ErrorLog.Printf("%v", err)
 			}
-			app.Logging.stdout.Printf(string(scanResultJson))
+			app.Logging.Stdout.Printf(string(scanResultJson))
 		}
 	}
 }

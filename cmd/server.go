@@ -7,7 +7,7 @@ import (
 
 func (server Server) ok(w http.ResponseWriter, req *http.Request) {
 	time.Sleep(3 * time.Millisecond)
-	server.Logging.stdout.Printf(req.RemoteAddr)
+	server.Logging.Stdout.Printf(req.RemoteAddr)
 	//_, _ = fmt.Fprintf(w, "ok")
 	http.Error(w, "Unknown Error", http.StatusInternalServerError)
 }
@@ -18,9 +18,9 @@ type Server struct {
 
 func (server Server) start(port string) {
 	http.HandleFunc("/", server.ok)
-	server.Logging.stdout.Printf("Start server, listing on port: %s", port)
+	server.Logging.Stdout.Printf("Start server, listing on port: %s", port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		server.Logging.errorLog.Printf("%v", err)
+		server.Logging.ErrorLog.Printf("%v", err)
 	}
 }
