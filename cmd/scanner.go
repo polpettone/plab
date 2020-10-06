@@ -1,6 +1,9 @@
 package cmd
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type ScanResult struct {
 	ConcurrencyLimit          int
@@ -9,7 +12,12 @@ type ScanResult struct {
 	RequestCount              int
 	DurationNanoSeconds       time.Duration
 	DurationMilliSeconds      int64
-	SuccessCount              int
+	RequestResponseEvaluation RequestResponseEvaluation
+}
+
+type IntermediateScanResult struct {
+	DurationNanoSeconds       time.Duration
+	DurationMilliSeconds      int64
 	RequestResponseEvaluation RequestResponseEvaluation
 }
 
@@ -50,6 +58,10 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 	for {
 		response := <-responseChan
 		responses = append(responses, response)
+
+		logResponse(response, scanner)
+		logIntermediateScanResult(startTime, responses, scanner)
+
 		if len(responses) == requestCount {
 			break
 		}
@@ -69,6 +81,31 @@ func (scanner Scanner) scan(url string, requestCount int, concurrencyLimit int) 
 		RequestResponseEvaluation: evaluateResponses(responses),
 	}
 	return &scanResult, nil
+}
+
+func logIntermediateScanResult(startTime time.Time, responses []PClientResponse, scanner Scanner) {
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+	intermediateScanResult := IntermediateScanResult{
+		RequestResponseEvaluation: evaluateResponses(responses),
+		DurationNanoSeconds:       duration,
+		DurationMilliSeconds:      duration.Milliseconds(),
+	}
+	intermediateScanResultJson, err := json.Marshal(intermediateScanResult)
+	if err != nil {
+		scanner.Logging.errorLog.Printf("%v", err)
+	} else {
+		scanner.Logging.result.Printf(string(intermediateScanResultJson))
+	}
+}
+
+func logResponse(response PClientResponse, scanner Scanner) {
+	responseJson, err := json.Marshal(response)
+	if err != nil {
+		scanner.Logging.errorLog.Printf("%v", err)
+	} else {
+		scanner.Logging.result.Printf(string(responseJson))
+	}
 }
 
 func evaluateResponses(responses []PClientResponse) RequestResponseEvaluation {
