@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"net/http"
+	"time"
 )
 
 func (server Server) ok(w http.ResponseWriter, req *http.Request) {
+	time.Sleep(3 * time.Millisecond)
 	server.Logging.stdout.Printf(req.RemoteAddr)
 	//_, _ = fmt.Fprintf(w, "ok")
 	http.Error(w, "Unknown Error", http.StatusInternalServerError)
