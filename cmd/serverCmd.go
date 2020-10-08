@@ -16,7 +16,7 @@ func NewServerScanCmd() *cobra.Command {
 }
 
 func handleServerCommand(args []string) {
-	server := Server{Logging: NewLogging()}
+	server := Server{Logging: NewLogging(), Counters: map[string]int{"i": 0, "j": 0}}
 	server.start(args[0])
 }
 
