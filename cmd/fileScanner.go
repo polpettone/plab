@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+//TODO: check permissions before scanning
+
 type FileScanner struct {
 	Logging *Logging
 }
