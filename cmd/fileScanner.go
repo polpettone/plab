@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -22,18 +23,36 @@ type FileListResult struct {
 }
 
 type Stat struct {
-	FileExtensionMap map[string][]File
+	FilesByExtension []FilesByExtension
 }
 
+type FilesByExtension struct {
+	Extension string
+	Files []File
+}
 
-func NewStat(files []File) Stat {
+func NewStat(files []File, logging *Logging) Stat {
 	extensions := getAllFileExtensions(files)
-	fileExtionsionMap := make(map[string][]File)
+	var filesByExtensionSlice []FilesByExtension
+
+	startTime := time.Now()
+	logging.DebugLog.Printf("filter files by extension")
 	for ext := range extensions.m {
-		fileExtionsionMap[ext] = filterByExtension(files, ext)
+		filesByExtensionSlice = append(filesByExtensionSlice, FilesByExtension{ext, filterByExtension(files, ext)})
 	}
+	endTime := time.Now()
+	logging.DebugLog.Printf("filter files by extension done in %d ms", endTime.Sub(startTime).Milliseconds())
+
+	startTime = time.Now()
+	logging.DebugLog.Printf("sort files by extensions count")
+	sort.Slice(filesByExtensionSlice, func(i, j int) bool {
+		return len(filesByExtensionSlice[i].Files) > len(filesByExtensionSlice[j].Files)
+	})
+	endTime = time.Now()
+	logging.DebugLog.Printf("sort files by extensions count done in %d ms", endTime.Sub(startTime).Milliseconds())
+
 	return Stat{
-		FileExtensionMap: fileExtionsionMap,
+		FilesByExtension: filesByExtensionSlice,
 	}
 }
 
@@ -92,16 +111,12 @@ func(fileScanner FileScanner) list(path string) {
 	duration := fileListResult.EndTime.Sub(fileListResult.StartTime).Milliseconds()
 	fileScanner.Logging.Stdout.Printf("Scanned %d Files in %d ms", len(fileListResult.Files), duration)
 
-	for _, file := range fileListResult.Files {
-		fileScanner.Logging.InfoLog.Printf("%s %d", file.path, file.info.Size())
-	}
+	stat := NewStat(fileListResult.Files, fileScanner.Logging)
 
-	extensions := getAllFileExtensions(fileListResult.Files)
+	fileScanner.Logging.Stdout.Printf("Created Stats")
 
-	stat := NewStat(fileListResult.Files)
-	for ext := range extensions.m {
-		count := len(stat.FileExtensionMap[ext])
-		fileScanner.Logging.InfoLog.Printf("%s %d", ext, count)
+	for _, filesByExtension := range stat.FilesByExtension {
+		fileScanner.Logging.InfoLog.Printf("%s %d", filesByExtension.Extension, len(filesByExtension.Files))
 	}
 }
 
