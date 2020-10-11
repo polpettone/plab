@@ -17,13 +17,14 @@ type File struct {
 }
 
 type FileListResult struct {
+	FilesByExtensionMap map[string]*FilesByExtension
 	Files []File
 	StartTime time.Time
 	EndTime time.Time
 }
 
 type Stat struct {
-	FilesByExtension []FilesByExtension
+	FilesByExtension []* FilesByExtension
 }
 
 type FilesByExtension struct {
@@ -31,52 +32,38 @@ type FilesByExtension struct {
 	Files []File
 }
 
-func NewStat(files []File, logging *Logging) Stat {
-	extensions := getAllFileExtensions(files)
-	var filesByExtensionSlice []FilesByExtension
+func NewStat(files map[string] *FilesByExtension, logging *Logging) Stat {
+	var l []*FilesByExtension
 
-	startTime := time.Now()
-	logging.DebugLog.Printf("filter files by extension")
-
-	filesByExtensionChan := make(chan *FilesByExtension)
-
-	for ext := range extensions.m {
-		go func(ext string) {
-			filesByExtension :=  &FilesByExtension{ext, filterByExtension(files, ext)}
-			filesByExtensionChan <- filesByExtension
-		}(ext)
+	for _ , x := range files {
+		l = append(l, x)
 	}
 
-	for {
-		filesByExtension := <-filesByExtensionChan
-		filesByExtensionSlice = append(filesByExtensionSlice, *filesByExtension)
-		if len(filesByExtensionSlice) == len(extensions.m) {
-			break
-		}
-	}
-
-	endTime := time.Now()
-	logging.DebugLog.Printf("filter files by extension done in %d ms", endTime.Sub(startTime).Milliseconds())
-
-	startTime = time.Now()
-	logging.DebugLog.Printf("sort files by extensions count")
-	sort.Slice(filesByExtensionSlice, func(i, j int) bool {
-		return len(filesByExtensionSlice[i].Files) > len(filesByExtensionSlice[j].Files)
+	sort.Slice(l, func(i, j int) bool {
+		return len(l[i].Files) > len(l[j].Files)
 	})
-	endTime = time.Now()
-	logging.DebugLog.Printf("sort files by extensions count done in %d ms", endTime.Sub(startTime).Milliseconds())
 
 	return Stat{
-		FilesByExtension: filesByExtensionSlice,
+		FilesByExtension: l,
 	}
 }
 
 func listFiles(path string) (*FileListResult, error) {
 	startTime := time.Now()
 	var files []File
+
+	filesByExtensionMap := make(map[string]*FilesByExtension)
+
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			files = append(files, File{path, info})
+			ext := filepath.Ext(path)
+			if x, found := filesByExtensionMap[ext]; found {
+				x.Files = append(x.Files, File{path, info})
+			} else {
+				var files []File
+				files = append(files, File{path, info})
+				filesByExtensionMap[ext] = &FilesByExtension{Extension: ext, Files: files}
+			}
 		}
 		return nil
 	})
@@ -87,6 +74,7 @@ func listFiles(path string) (*FileListResult, error) {
 	}
 
 	return &FileListResult{
+		filesByExtensionMap,
 		files,
 		startTime,
 		endTime,
@@ -124,9 +112,9 @@ func(fileScanner FileScanner) list(path string) {
 	}
 
 	duration := fileListResult.EndTime.Sub(fileListResult.StartTime).Milliseconds()
-	fileScanner.Logging.Stdout.Printf("Scanned %d Files in %d ms", len(fileListResult.Files), duration)
+	fileScanner.Logging.Stdout.Printf("Scanned files with %d different extensions in %d ms", len(fileListResult.FilesByExtensionMap), duration)
 
-	stat := NewStat(fileListResult.Files, fileScanner.Logging)
+	stat := NewStat(fileListResult.FilesByExtensionMap, fileScanner.Logging)
 
 	fileScanner.Logging.Stdout.Printf("Created Stats")
 
