@@ -37,9 +37,24 @@ func NewStat(files []File, logging *Logging) Stat {
 
 	startTime := time.Now()
 	logging.DebugLog.Printf("filter files by extension")
+
+	filesByExtensionChan := make(chan *FilesByExtension)
+
 	for ext := range extensions.m {
-		filesByExtensionSlice = append(filesByExtensionSlice, FilesByExtension{ext, filterByExtension(files, ext)})
+		go func(ext string) {
+			filesByExtension :=  &FilesByExtension{ext, filterByExtension(files, ext)}
+			filesByExtensionChan <- filesByExtension
+		}(ext)
 	}
+
+	for {
+		filesByExtension := <-filesByExtensionChan
+		filesByExtensionSlice = append(filesByExtensionSlice, *filesByExtension)
+		if len(filesByExtensionSlice) == len(extensions.m) {
+			break
+		}
+	}
+
 	endTime := time.Now()
 	logging.DebugLog.Printf("filter files by extension done in %d ms", endTime.Sub(startTime).Milliseconds())
 
