@@ -20,24 +20,24 @@ type File struct {
 
 type FileListResult struct {
 	FilesByExtensionMap map[string]*FilesByExtension
-	Files []File
-	StartTime time.Time
-	EndTime time.Time
+	StartTime           time.Time
+	EndTime             time.Time
 }
 
 type Stat struct {
-	FilesByExtension []* FilesByExtension
+	FilesByExtensionSlice []*FilesByExtension
+	FileCount             int
 }
 
 type FilesByExtension struct {
 	Extension string
-	Files []File
+	Files     []File
 }
 
-func NewStat(files map[string] *FilesByExtension) Stat {
+func NewStat(files map[string]*FilesByExtension) Stat {
 	var l []*FilesByExtension
 
-	for _ , x := range files {
+	for _, x := range files {
 		l = append(l, x)
 	}
 
@@ -45,27 +45,36 @@ func NewStat(files map[string] *FilesByExtension) Stat {
 		return len(l[i].Files) > len(l[j].Files)
 	})
 
+	var count int
+	for _, f := range files {
+		count += len(f.Files)
+	}
+
 	return Stat{
-		FilesByExtension: l,
+		FilesByExtensionSlice: l,
+		FileCount:             count,
 	}
 }
 
-func listFiles(path string) (*FileListResult, error) {
+func listFiles(path string, logging *Logging) (*FileListResult, error) {
 	startTime := time.Now()
-	var files []File
 
 	filesByExtensionMap := make(map[string]*FilesByExtension)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			ext := filepath.Ext(path)
-			if x, found := filesByExtensionMap[ext]; found {
-				x.Files = append(x.Files, File{path, info})
-			} else {
-				var files []File
-				files = append(files, File{path, info})
-				filesByExtensionMap[ext] = &FilesByExtension{Extension: ext, Files: files}
+		if info != nil {
+			if !info.IsDir() {
+				ext := filepath.Ext(path)
+				if x, found := filesByExtensionMap[ext]; found {
+					x.Files = append(x.Files, File{path, info})
+				} else {
+					var files []File
+					files = append(files, File{path, info})
+					filesByExtensionMap[ext] = &FilesByExtension{Extension: ext, Files: files}
+				}
 			}
+		} else {
+			logging.DebugLog.Printf("info is nil for path %s error: %v", path, err)
 		}
 		return nil
 	})
@@ -77,16 +86,15 @@ func listFiles(path string) (*FileListResult, error) {
 
 	return &FileListResult{
 		filesByExtensionMap,
-		files,
 		startTime,
 		endTime,
 	}, nil
 }
 
-func(fileScanner FileScanner) list(path string) {
+func (fileScanner FileScanner) list(path string) {
 	fileScanner.Logging.Stdout.Printf("List Files")
 
-	fileListResult, err := listFiles(path)
+	fileListResult, err := listFiles(path, fileScanner.Logging)
 
 	if err != nil {
 		fileScanner.Logging.ErrorLog.Printf("%v", err)
@@ -98,9 +106,27 @@ func(fileScanner FileScanner) list(path string) {
 
 	stat := NewStat(fileListResult.FilesByExtensionMap)
 
-	fileScanner.Logging.Stdout.Printf("Created Stats")
-
-	for _, filesByExtension := range stat.FilesByExtension {
-		fileScanner.Logging.InfoLog.Printf("%s %d", filesByExtension.Extension, len(filesByExtension.Files))
+	fileScanner.Logging.Stdout.Printf("total file count: %d", stat.FileCount)
+	for _, filesByExtension := range stat.FilesByExtensionSlice {
+		fileScanner.Logging.Stdout.Printf("%s %d", filesByExtension.Extension, len(filesByExtension.Files))
 	}
+
+	largestFiles := findNthLargesFiles(fileListResult)
+
+	for _, f := range largestFiles {
+		fileScanner.Logging.Stdout.Printf("%v %d %s", f.info.ModTime(), f.info.Size() / (1000 * 1000), f.path)
+	}
+}
+
+func findNthLargesFiles(fileListResult *FileListResult) []File {
+	var files []File
+	for _, f := range fileListResult.FilesByExtensionMap {
+		files = append(files, f.Files...)
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].info.Size() > files[j].info.Size()
+	})
+
+	return files[:10]
 }
