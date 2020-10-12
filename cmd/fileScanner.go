@@ -34,7 +34,7 @@ type FilesByExtension struct {
 	Files []File
 }
 
-func NewStat(files map[string] *FilesByExtension, logging *Logging) Stat {
+func NewStat(files map[string] *FilesByExtension) Stat {
 	var l []*FilesByExtension
 
 	for _ , x := range files {
@@ -83,26 +83,6 @@ func listFiles(path string) (*FileListResult, error) {
 	}, nil
 }
 
-
-func getAllFileExtensions(files []File) *Set {
-	extensions := NewSet()
-	for _, file := range files {
-		extensions.Add(filepath.Ext(file.path))
-	}
-	return extensions
-}
-
-
-func filterByExtension(files []File, extension string) []File {
-	var filtered []File
-	for _, file := range files {
-		if filepath.Ext(file.path) == extension {
-			filtered = append(filtered, file)
-		}
-	}
-	return filtered
-}
-
 func(fileScanner FileScanner) list(path string) {
 	fileScanner.Logging.Stdout.Printf("List Files")
 
@@ -116,36 +96,11 @@ func(fileScanner FileScanner) list(path string) {
 	duration := fileListResult.EndTime.Sub(fileListResult.StartTime).Milliseconds()
 	fileScanner.Logging.Stdout.Printf("Scanned files with %d different extensions in %d ms", len(fileListResult.FilesByExtensionMap), duration)
 
-	stat := NewStat(fileListResult.FilesByExtensionMap, fileScanner.Logging)
+	stat := NewStat(fileListResult.FilesByExtensionMap)
 
 	fileScanner.Logging.Stdout.Printf("Created Stats")
 
 	for _, filesByExtension := range stat.FilesByExtension {
 		fileScanner.Logging.InfoLog.Printf("%s %d", filesByExtension.Extension, len(filesByExtension.Files))
 	}
-}
-
-var exists = struct{}{}
-
-type Set struct {
-	m map[string]struct{}
-}
-
-func NewSet() *Set {
-	s := &Set{}
-	s.m = make(map[string]struct{})
-	return s
-}
-
-func (s *Set) Add(value string) {
-	s.m[value] = exists
-}
-
-func (s *Set) Remove(value string) {
-	delete(s.m, value)
-}
-
-func (s *Set) Contains(value string) bool {
-	_, c := s.m[value]
-	return c
 }
